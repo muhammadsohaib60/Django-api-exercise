@@ -1,1 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ProLogs Truck API Service</title>
+  </head>
+  <body>
+    <h1>Welcome to the ProLogs Truck API Service!</h1>
+    <a href="/api/trucks/">View Trucks</a> <br />
+    <a href="/api/check_truck_hos/">Check Truck HOS Violations</a> <br />
+    <a href="/api/drivers/">View Drivers</a> <br />
+    <a href="/api/check_driver_hos/">Check Driver HOS Violations</a> <br />
 
+    <form action="/api/check_hos_with_conditions/" method="get">
+      <label for="driver">Check HOS Conditions for Driver:</label>
+      <select name="driver_id" id="driver">
+        {% for driver in drivers %}
+        <option value="{{ driver.driverId }}">{{ driver.driverId }}</option>
+        {% endfor %}
+      </select>
+      <label for="pickup_time">Pickup Time:</label>
+      <input
+        type="datetime-local"
+        name="pickup_time"
+        id="pickup_time"
+        required
+      />
+      <label for="dropoff_time">Dropoff Time:</label>
+      <input
+        type="datetime-local"
+        name="dropoff_time"
+        id="dropoff_time"
+        required
+      />
+      <button type="submit">Check HOS Conditions</button>
+    </form>
+
+    <form action="/api/schedule/" method="get">
+      <label for="driver">Plan Optimal Schedule for Driver:</label>
+      <select name="driver_id" id="driver">
+        {% for driver in drivers %}
+        <option value="{{ driver.driverId }}">{{ driver.driverId }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Plan Schedule</button>
+    </form>
+
+    <div id="schedule-result"></div>
+
+    <script>
+      document
+        .querySelector("form[action='/api/schedule/']")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const driverId = document.getElementById("driver").value;
+
+          fetch(`/api/schedule/?driver_id=${driverId}`)
+            .then((response) => response.json())
+            .then((data) => {
+              const resultDiv = document.getElementById("schedule-result");
+              if (data.error) {
+                resultDiv.innerHTML = `<p>${data.error}</p>`;
+              } else {
+                const schedule = data.schedule;
+                const hosViolations = data.hos_violations;
+                const rulesApplied = data.rules_applied;
+
+                resultDiv.innerHTML = `
+                <h2>Optimal Schedule for Driver ${schedule.driverId}</h2>
+                <p>Pickup Time: ${schedule.pickup}</p>
+                <p>Dropoff Time: ${schedule.dropoff}</p>
+                <h3>HOS Violations</h3>
+                <p>${hosViolations.message}</p>
+                <h3>Rules Applied</h3>
+                <ul>${rulesApplied
+                  .map((rule) => `<li>${rule}</li>`)
+                  .join("")}</ul>
+              `;
+              }
+            });
+        });
+    </script>
+    <h2>Hours of Service (HOS) Rules</h2>
+    <ul>
+      <li>
+        <strong>11-Hour Driving Limit:</strong> Drivers may drive a maximum of
+        11 hours after 10 consecutive hours off duty.
+      </li>
+      <li>
+        <strong>14-Hour Driving Window:</strong> Drivers may not drive beyond
+        the 14th consecutive hour after coming on duty, following 10 consecutive
+        hours off duty.
+      </li>
+      <li>
+        <strong>30-Minute Break:</strong> Drivers must take a 30-minute break
+        after 8 cumulative hours of driving without at least a 30-minute
+        interruption.
+      </li>
+      <li>
+        <strong>60/70-Hour Duty Limit:</strong> Drivers may not drive after
+        60/70 hours on duty in 7/8 consecutive days. A driver may restart a 7/8
+        consecutive day period after taking 34 or more consecutive hours off
+        duty.
+      </li>
+      <li>
+        <strong>Sleeper Berth Provision:</strong> Drivers using the sleeper
+        berth provision must take at least 8 consecutive hours in the sleeper
+        berth, plus a separate 2 consecutive hours either in the sleeper berth,
+        off duty, or any combination of the two.
+      </li>
+    </ul>
+  </body>
+</html>
